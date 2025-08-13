@@ -1,49 +1,150 @@
-.calculator-container {
-  background-color: #2c2c2c; /* abu-abu kehitaman */
-  height: 100vh;
+/* Layout dasar */
+.calc-wrap {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 12px;
+}
+
+.calc-container {
+  background: #111;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  color: #fff;
+}
+
+/* Header */
+.calc-header {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.calc-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.calc-actions {
+  display: flex;
+  gap: 8px;
 }
 
-.calculator {
-  background: #3d3d3d;
-  padding: 20px;
-  border-radius: 10px;
-  width: 250px;
-  box-shadow: 0px 0px 15px rgba(0,0,0,0.3);
-}
-
-.display {
-  background: #1e1e1e;
-  color: white;
-  padding: 10px;
-  font-size: 1.5rem;
-  border-radius: 5px;
+/* Display */
+.calc-display {
+  width: 90%;
+  font-size: 2rem;
+  line-height: 1.3;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #222;
+  color: #0ff;
   text-align: right;
-  margin-bottom: 10px;
-  min-height: 40px;
+  outline: none;
+  margin-bottom: 12px;
 }
 
-.buttons {
+/* Baris atas (C, ⌫, %, ±) */
+.calc-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
-button {
-  background: #5a5a5a;
-  color: white;
-  padding: 15px;
-  font-size: 1rem;
+/* Grid tombol */
+.calc-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+/* Tombol */
+.btn {
   border: none;
-  border-radius: 5px;
+  background: #333;
+  color: #fff;
+  padding: 14px 10px;
+  border-radius: 10px;
+  font-size: 1.05rem;
   cursor: pointer;
+  transition: transform 0.05s ease, background 0.2s ease;
 }
+.btn:hover { background: #3b3b3b; }
+.btn:active { transform: scale(0.98); }
 
-button:hover {
-  background: #777;
+.btn.equal {
+  background: #0066ff;
 }
-.calc-buttons .delete:hover {
-  background: #e0a800;
+.btn.equal:hover { background: #0a5ae3; }
+
+.btn.danger {
+  background: #b91c1c;
+}
+.btn.danger:hover { background: #991b1b; }
+
+/* Riwayat */
+.calc-history {
+  background: #0e0e0e;
+  border-radius: 12px;
+  padding: 12px;
+  color: #d9d9d9;
+  max-height: 520px;
+  overflow: auto;
+}
+.calc-history h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.calc-history .muted {
+  opacity: 0.7;
+  font-size: 0.95rem;
+}
+.calc-history ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.hist-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  background: #161616;
+  border: 1px solid #242424;
+  color: #f3f3f3;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 8px;
+}
+.hist-item .expr { opacity: 0.9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-item .eq { opacity: 0.6; }
+.hist-item .res { font-weight: 700; }
+
+/* Animasi error (shake) */
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+.shake { animation: shake 0.5s; }
+
+/* Responsif */
+@media (max-width: 820px) {
+  .calc-wrap {
+    grid-template-columns: 1fr;
+  }
+  .calc-history {
+    max-height: none;
+  }
 }

@@ -1,4 +1,4 @@
-import Calculator from "./Calculator";
+import Calculator from "./components/Calculator/Calculator"; // Perhatikan path lengkap
 import "./index.css";
 
 function App() {

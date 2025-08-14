@@ -49,13 +49,15 @@ const MAX_LEN = 18;
    Reducer & State
    ============= */
 const initialState = {
-  input: "",
+  input: "0",
   error: false,
   shake: false,
-  history: [], // {expr, result, time}
-  showHistory: true,
-  lastAction: null, // untuk auto-focus
+  history: JSON.parse(localStorage.getItem("calcHistory") || "[]"),
+  showHistory: JSON.parse(localStorage.getItem("showHistory") || "false"), // 🔹 load status
+  lastAction: null,
 };
+
+
 
 function reducer(state, action) {
   switch (action.type) {
@@ -68,39 +70,68 @@ function reducer(state, action) {
       return { ...state, input: next, lastAction: "DELETE" };
     }
 
-    case "APPEND": {
-      let { value } = action;
-      let input = state.input;
+case "APPEND": {
+  let { value } = action;
+  let input = state.input;
 
-      if (state.error) {
-        // Jika sebelumnya Error
-        if (/[+\-*/.]/.test(value)) input = "0";
-        else input = "";
-      }
+  if (state.error) {
+    if (/[+\-*/.]/.test(value)) input = "0";
+    else input = "";
+  }
 
-      // Cegah "0" berulang di depan
-      if (input === "0") {
-        if (value === "0") return state;
-        if (/\d/.test(value)) input = "";
-        if (value === ".") value = ".";
-      }
-
-      // Cegah operator ganda & titik ganda
-      if (/[+\-*/.]/.test(value)) {
-        if (input === "" && value !== "-") return state; // hanya "-" boleh paling awal
-        if (isLastCharOperator(input)) {
-          input = input.slice(0, -1) + value;
-          return input.length > MAX_LEN
-            ? { ...state, shake: true, error: true, lastAction: "ERROR" }
-            : { ...state, input, error: false, lastAction: "REPLACE_OP" };
-        }
-        if (value === "." && hasDotInLastNumber(input)) return state;
-      }
-
-      const next = input + value;
-      if (next.length > MAX_LEN) return { ...state, shake: true, error: true, lastAction: "ERROR" };
-      return { ...state, input: next, error: false, lastAction: "APPEND" };
+  // Kurung buka/tutup
+  if (value === "(") {
+    const next = input + value;
+    return next.length > MAX_LEN
+      ? { ...state, shake: true, error: true, lastAction: "ERROR" }
+      : { ...state, input: next, error: false, lastAction: "APPEND" };
+  }
+  if (value === ")") {
+    // Jangan izinkan ")" di awal atau tanpa "(" sebelumnya
+    if (!input.includes("(") || input.split("(").length <= input.split(")").length) {
+      return state;
     }
+    const next = input + value;
+    return next.length > MAX_LEN
+      ? { ...state, shake: true, error: true, lastAction: "ERROR" }
+      : { ...state, input: next, error: false, lastAction: "APPEND" };
+  }
+
+  // Cegah "0" berulang di depan
+  if (input === "0") {
+    if (value === "0") return state;
+    if (/\d/.test(value)) input = "";
+  }
+
+  const operators = ["+", "-", "*", "/"];
+  const lastChar = input.slice(-1);
+
+  // Kalau operator
+  if (operators.includes(value)) {
+    if (input === "" && value !== "-") return state; // hanya "-" boleh di awal
+    if (operators.includes(lastChar)) {
+      // Izinkan *- atau /-
+      if (value === "-" && (lastChar === "*" || lastChar === "/")) {
+        const next = input + value;
+        return next.length > MAX_LEN
+          ? { ...state, shake: true, error: true, lastAction: "ERROR" }
+          : { ...state, input: next, error: false, lastAction: "APPEND" };
+      }
+      // Selain itu, replace operator sebelumnya
+      input = input.slice(0, -1) + value;
+      return input.length > MAX_LEN
+        ? { ...state, shake: true, error: true, lastAction: "ERROR" }
+        : { ...state, input, error: false, lastAction: "REPLACE_OP" };
+    }
+  }
+
+  // Cegah titik ganda di angka terakhir
+  if (value === "." && hasDotInLastNumber(input)) return state;
+
+  const next = input + value;
+  if (next.length > MAX_LEN) return { ...state, shake: true, error: true, lastAction: "ERROR" };
+  return { ...state, input: next, error: false, lastAction: "APPEND" };
+}
 
     case "TOGGLE_SIGN": {
       const r = getLastNumberRange(state.input);
@@ -129,28 +160,33 @@ function reducer(state, action) {
       return { ...state, input: next, error: false, lastAction: "PERCENT" };
     }
 
-    case "CALCULATE": {
-      const expr = state.input;
-      if (!expr || isLastCharOperator(expr)) {
-        return { ...state, input: "Error", error: true, shake: true, lastAction: "ERROR" };
-      }
-      try {
-        const raw = evaluate(expr);
-        const result = String(raw);
-        const clipped = clampDisplay(result, MAX_LEN);
-        const historyItem = { expr, result: result, time: Date.now() };
-        return {
-          ...state,
-          input: clipped,
-          error: false,
-          shake: false,
-          history: [historyItem, ...state.history].slice(0, 20),
-          lastAction: "CALCULATE",
-        };
-      } catch {
-        return { ...state, input: "Error", error: true, shake: true, lastAction: "ERROR" };
-      }
-    }
+case "CALCULATE": {
+  const expr = state.input;
+  if (!expr || isLastCharOperator(expr)) {
+    return { ...state, input: "Error", error: true, shake: true, lastAction: "ERROR" };
+  }
+  try {
+    const raw = evaluate(expr);
+    const result = String(raw);
+    const clipped = clampDisplay(result, MAX_LEN);
+    const historyItem = { expr, result: result, time: Date.now() };
+
+    const updatedHistory = [historyItem, ...state.history].slice(0, 20);
+    localStorage.setItem("calcHistory", JSON.stringify(updatedHistory)); // 🔹 simpan ke localStorage
+
+    return {
+      ...state,
+      input: clipped,
+      error: false,
+      shake: false,
+      history: updatedHistory,
+      lastAction: "CALCULATE",
+    };
+  } catch {
+    return { ...state, input: "Error", error: true, shake: true, lastAction: "ERROR" };
+  }
+}
+
 
     case "COPY_OK":
       return { ...state, lastAction: "COPY_OK" };
@@ -158,8 +194,11 @@ function reducer(state, action) {
     case "ERROR_SHAKE_DONE":
       return { ...state, shake: false };
 
-    case "TOGGLE_HISTORY":
-      return { ...state, showHistory: !state.showHistory };
+case "TOGGLE_HISTORY": {
+  const newShowHistory = !state.showHistory;
+  localStorage.setItem("showHistory", JSON.stringify(newShowHistory)); // 🔹 save status
+  return { ...state, showHistory: newShowHistory };
+}
 
     default:
       return state;
@@ -174,15 +213,17 @@ export default function Calculator() {
   const inputRef = useRef(null);
 
   // Tombol (useMemo supaya tidak re-render)
-  const buttons = useMemo(
-    () => [
-      { label: "7" }, { label: "8" }, { label: "9" }, { label: "/" },
-      { label: "4" }, { label: "5" }, { label: "6" }, { label: "*" },
-      { label: "1" }, { label: "2" }, { label: "3" }, { label: "-" },
-      { label: "0" }, { label: "." }, { label: "+" }, { label: "=" },
-    ],
-    []
-  );
+const buttons = useMemo(
+  () => [
+    { label: "(" }, { label: ")" }, { label: "C" }, { label: "/" },
+    { label: "7" }, { label: "8" }, { label: "9" }, { label: "*" },
+    { label: "4" }, { label: "5" }, { label: "6" }, { label: "-" },
+    { label: "1" }, { label: "2" }, { label: "3" }, { label: "+" },
+    { label: "0" }, { label: "." }, { label: "=" }
+  ],
+  []
+);
+
 
   // Display
   const display = state.input === "" ? "0" : state.input;
